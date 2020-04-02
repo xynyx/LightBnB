@@ -26,7 +26,11 @@ const getUserWithEmail = function(email) {
       [email]
     )
     .then(res => {
-      res.rows[0] === undefined ? null : res.rows[0];
+      if (res.rows.length === 0) {
+        return null;
+      } else {
+        return res.rows[0];
+      }
     })
     .catch(err => console.error("Error", err.stack));
 };
@@ -46,7 +50,11 @@ const getUserWithId = function(id) {
       [id]
     )
     .then(res => {
-      res.rows[0] === undefined ? null : res.rows[0];
+      if (res.rows.length === 0) {
+        return null;
+      } else {
+        return res.rows[0];
+      }
     })
     .catch(err => console.error("Error:", err.stack));
 };
@@ -60,11 +68,14 @@ exports.getUserWithId = getUserWithId;
 
 const addUser = function(user) {
   const values = [user.name, user.email, user.password];
-  return pool.query(`
-  INSERT INTO users (name, email, password)  VALUES ($1, $2, $3)
+  return pool
+    .query(
+      `
+  INSERT INTO users (name, email, password) VALUES ($1, $2, $3)
   RETURNING *;`,
-  values)
-  .then(res => res.rows);
+      values
+    )
+    .then(res => res.rows[0]);
 };
 exports.addUser = addUser;
 
