@@ -1,11 +1,4 @@
-const { Pool } = require("pg");
-
-const pool = new Pool({
-  user: "vagrant",
-  password: "123",
-  host: "localhost",
-  database: "lightbnb"
-});
+const db = require('./db')
 
 /// Users
 
@@ -16,7 +9,7 @@ const pool = new Pool({
  */
 
 const getUserWithEmail = function(email) {
-  return pool
+  return db
     .query(
       `SELECT * FROM users
   WHERE email = $1;
@@ -40,7 +33,7 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  return pool
+  return db
     .query(
       `SELECT * FROM users
   WHERE id = $1;
@@ -66,7 +59,7 @@ exports.getUserWithId = getUserWithId;
 
 const addUser = function(user) {
   const values = [user.name, user.email, user.password];
-  return pool
+  return db
     .query(
       `
   INSERT INTO users (name, email, password) VALUES ($1, $2, $3)
@@ -86,7 +79,7 @@ exports.addUser = addUser;
  */
 
 const getAllReservations = function(guest_id, limit = 10) {
-  return pool
+  return db
     .query(
       `
       SELECT reservations.*, properties.*, AVG(property_reviews.rating) AS average_rating
@@ -137,7 +130,7 @@ const getAllProperties = function(options, limit = 10) {
       options.maximum_price_per_night,
       options.minimum_price_per_night
     );
-    queryString += `AN cost_per_night < $${queryParams.length -
+    queryString += `AND cost_per_night < $${queryParams.length -
       1} AND cost_per_night > $${queryParams.length}`;
   }
 
@@ -154,7 +147,7 @@ const getAllProperties = function(options, limit = 10) {
     LIMIT $${queryParams.length}
 `;
 
-  return pool.query(queryString, queryParams).then(res => res.rows);
+  return db.query(queryString, queryParams).then(res => res.rows);
 };
 
 exports.getAllProperties = getAllProperties;
@@ -187,6 +180,6 @@ const addProperty = function(property) {
   )}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;`;
 
   console.log(queryString, values);
-  return pool.query(queryString, values).then(res => res.rows[0]);
+  return db.query(queryString, values).then(res => res.rows[0]);
 };
 exports.addProperty = addProperty;
