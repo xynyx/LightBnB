@@ -112,10 +112,48 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function(options, limit = 10) {
-  return pool
-    .query(`SELECT * FROM properties LIMIT $1;`, [limit])
-    .then(res => res.rows);
+  const queryParams = [];
+  // Start query with info that comes before WHERE clause
+  let queryString = `
+    SELECT properties.*, AVG(property_reviews.rating) AS average_rating
+    FROM properties JOIN property_reviews ON properties.id = property_id
+    WHERE 1=1
+`;
+
+  // Check if city is an option; add to params array; create additional WHERE clause
+  if (options.city) {
+    //queryParams.length will dynamically get the array length, and since this is the first added, it will be $1
+    // The % syntax for LIKE MUST be part of the parameter, not the query!
+    queryParams.push(`%${options.city}%`);
+    queryString += `AND city LIKE $${queryParams.length}`;
+  }
+
+  if (options.owner_id) {
+    queryParams.push(`${options.owner_id}`);
+    queryString += `AND owner_id = $${queryParams.length}`;
+  }
+
+  if (options.minimum_price_per_night && options.maximum_price_per_night) {
+    queryParams.push(`${options.maximum_price_per_night}`, `${options.minimum_price_per_night}`);
+    queryString += `AND cost_per_night < $${queryParams.length - 1} AND cost_per_night > $${queryParams.length}`;
+  };
+
+  queryString += `\nGROUP BY properties.id\n`;
+
+  if (options.minimum_rating) {
+    queryParams.push(`${options.minimum_rating}`);
+    queryString += `HAVING AVG(property_reviews.rating) >= $${queryParams.length}`;
+  };
+
+  queryParams.push(limit);
+  queryString += `
+    ORDER BY cost_per_night
+    LIMIT $${queryParams.length}
+`;
+
+  return pool.query(queryString, queryParams).then(res => res.rows);
 };
+
 exports.getAllProperties = getAllProperties;
 
 /**
